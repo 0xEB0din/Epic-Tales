@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Lamplight Library</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400;1,500&family=Lora:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #0B1427;
+      --ink-deep: #060B1A;
+      --bone: #EDE4D3;
+      --bone-dim: #A89F8A;
+      --gold: #D4AB5A;
+      --gold-deep: #A8853F;
+      --rose: #C98B7A;
+      --hairline: rgba(212, 171, 90, 0.22);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: var(--ink-deep); }
+
+    body {
+      background:
+        radial-gradient(ellipse at 50% -20%, rgba(60, 50, 100, 0.25), transparent 60%),
+        radial-gradient(ellipse at 50% 120%, rgba(180, 110, 60, 0.08), transparent 60%),
+        var(--ink);
+      color: var(--bone);
+      font-family: 'Lora', Georgia, 'Times New Roman', serif;
+      font-size: 18px;
+      line-height: 1.78;
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .stars { position: fixed; inset: 0; pointer-events: none; z-index: 0; will-change: transform; }
+    .stars svg { width: 100%; height: 100%; }
+
+    main { position: relative; z-index: 1; }
+    .page { max-width: 640px; margin: 0 auto; padding: 56px 32px 120px; }
+    #home .page { max-width: 760px; }
+
+    /* ---------- view switching ---------- */
+    body[data-on] .view { display: none; }
+    body[data-on] .view.active { display: block; }
+
+    /* ---------- scroll reveal (only when motion allowed) ---------- */
+    body.motion .reveal { opacity: 0; transform: translateY(18px); transition: opacity .9s ease, transform .9s ease; }
+    body.motion .reveal.in { opacity: 1; transform: none; }
+    body.motion .reveal.d1 { transition-delay: .1s; }
+    body.motion .reveal.d2 { transition-delay: .2s; }
+
+    /* ---------- library home ---------- */
+    .lib-hero { text-align: center; padding: 40px 0 64px; }
+    .lib-scene { display: block; margin: 0 auto 44px; opacity: 0.9; }
+    .lib-eyebrow { font-family: 'Lora', serif; font-size: 12px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--gold-deep); margin-bottom: 26px; }
+    .lib-title { font-family: 'Cormorant Garamond', serif; font-weight: 400; font-style: italic; font-size: clamp(42px, 8vw, 70px); color: var(--bone); line-height: 1.04; letter-spacing: 0.02em; }
+    body.motion .lib-title {
+      background: linear-gradient(100deg, var(--bone) 32%, var(--gold) 50%, var(--bone) 68%);
+      background-size: 220% auto; -webkit-background-clip: text; background-clip: text; color: transparent;
+      animation: shimmer 7s linear infinite;
+    }
+    @keyframes shimmer { to { background-position: 220% center; } }
+    .lib-sub { font-family: 'Lora', serif; font-size: 16px; color: var(--bone-dim); max-width: 450px; margin: 26px auto 0; line-height: 1.7; }
+    .lib-rule { width: 46px; height: 1px; background: var(--gold); opacity: 0.5; margin: 36px auto 0; }
+    .dedication { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 19px; color: var(--rose); margin-top: 30px; }
+
+    .shelf-label { text-align: center; font-family: 'Lora', serif; font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--bone-dim); margin: 0 0 36px; }
+    .cards { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 22px; }
+    .card {
+      background: rgba(237, 228, 211, 0.035); border: 1px solid var(--hairline); border-radius: 4px;
+      overflow: hidden; cursor: pointer; text-align: left; padding: 0; color: inherit;
+      display: flex; flex-direction: column; font: inherit;
+      transition: transform .4s ease, border-color .4s ease, background .4s ease, box-shadow .4s ease;
+    }
+    .card:hover, .card:focus-visible {
+      transform: translateY(-5px); border-color: var(--gold);
+      background: rgba(237, 228, 211, 0.06); box-shadow: 0 18px 40px -26px rgba(0,0,0,.8); outline: none;
+    }
+    .card .vignette { display: block; width: 100%; height: auto; }
+    .card .card-body { padding: 20px 22px 24px; }
+    .card .tale-arabic { font-family: 'Amiri','Scheherazade New',serif; direction: rtl; font-size: 26px; color: var(--gold); text-align: right; line-height: 1.2; margin-bottom: 8px; }
+    .card h2 { font-family: 'Cormorant Garamond', serif; font-weight: 500; font-size: 24px; color: var(--bone); line-height: 1.12; margin-bottom: 6px; }
+    .card .meta { font-family: 'Lora', serif; font-size: 11.5px; font-style: italic; color: var(--bone-dim); margin-bottom: 12px; }
+    .card .teaser { font-family: 'Lora', serif; font-size: 14px; color: var(--bone); opacity: 0.85; line-height: 1.55; margin-bottom: 16px; }
+    .card .open { font-family: 'Lora', serif; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold); display: inline-flex; gap: 8px; align-items: center; }
+    .card .open .arr { transition: transform .3s ease; }
+    .card:hover .open .arr, .card:focus-visible .open .arr { transform: translateX(5px); }
+    .lib-foot { text-align: center; font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 17px; color: var(--bone-dim); margin-top: 56px; }
+
+    /* ---------- nav ---------- */
+    .nav-back { display: inline-flex; align-items: center; gap: 8px; background: none; border: none; cursor: pointer; font-family: 'Lora', serif; font-size: 11px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--gold-deep); padding: 8px 0; transition: color .25s ease; }
+    .nav-back:hover { color: var(--gold); }
+    .nav-back .arr { transition: transform .3s ease; }
+    .nav-back:hover .arr { transform: translateX(-4px); }
+    .story-nav { margin-top: 96px; padding-top: 48px; border-top: 1px solid var(--hairline); display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; align-items: center; }
+    .nav-next { background: none; border: none; cursor: pointer; text-align: right; font: inherit; transition: color .25s ease; }
+    .nav-next .lbl { display: block; font-family: 'Lora', serif; font-size: 11px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--bone-dim); margin-bottom: 4px; }
+    .nav-next .ttl { font-family: 'Cormorant Garamond', serif; font-size: 22px; color: var(--bone); }
+    .nav-next:hover .ttl { color: var(--gold); }
+
+    /* ---------- per-story hero ---------- */
+    .hero { text-align: center; padding: 24px 0 72px; }
+    .hero-scene { display: block; margin: 0 auto 44px; opacity: 0.85; }
+    .hero-arabic { font-family: 'Amiri','Scheherazade New','Traditional Arabic',serif; direction: rtl; font-size: clamp(52px, 11vw, 92px); font-weight: 400; color: var(--gold); line-height: 1.1; margin-bottom: 30px; letter-spacing: 0.01em; }
+    .hero-english { font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(28px, 5vw, 42px); font-weight: 300; font-style: italic; color: var(--bone); letter-spacing: 0.04em; margin-bottom: 20px; }
+    .hero-subtitle { font-family: 'Lora', serif; font-size: 12px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--bone-dim); font-weight: 400; max-width: 440px; margin: 0 auto; line-height: 1.7; }
+
+    /* ---------- plates ---------- */
+    .plate { display: block; width: 100%; height: auto; border-radius: 4px; margin: 8px 0 18px; transition: transform .6s ease; }
+    .plate-sm { max-width: 340px; margin-left: auto; margin-right: auto; }
+
+    /* ---------- chapters ---------- */
+    section.chapter { margin: 60px 0; }
+    .chapter-label { font-family: 'Cormorant Garamond', serif; font-size: 13px; letter-spacing: 0.35em; color: var(--gold-deep); margin-bottom: 14px; font-style: italic; font-weight: 500; }
+    .chapter-title { font-family: 'Cormorant Garamond', serif; font-size: clamp(27px, 4.6vw, 37px); font-weight: 400; color: var(--bone); margin-bottom: 32px; line-height: 1.18; letter-spacing: 0.005em; }
+    .chapter p { margin-bottom: 22px; color: var(--bone); }
+    .chapter p em { color: var(--gold); font-style: italic; font-weight: 400; }
+    .chapter p.drop:first-of-type::first-letter { font-family: 'Cormorant Garamond', serif; font-size: 4.4em; float: left; line-height: 0.86; margin-right: 10px; margin-top: 6px; color: var(--gold); font-weight: 500; }
+    .aside { font-style: italic; color: var(--bone-dim); border-left: 1px solid var(--hairline); padding-left: 20px; margin: 32px 0; }
+
+    /* ---------- verses ---------- */
+    .verse { margin: 76px auto; text-align: center; max-width: 540px; }
+    .verse-arabic { font-family: 'Amiri', serif; direction: rtl; font-size: clamp(22px, 3.6vw, 30px); color: var(--gold); line-height: 2; margin-bottom: 28px; font-weight: 400; }
+    .verse-arabic .line { display: block; }
+    .verse-english { font-family: 'Cormorant Garamond', serif; font-size: clamp(18px, 2.7vw, 22px); font-style: italic; color: var(--bone); line-height: 1.65; margin-bottom: 20px; letter-spacing: 0.01em; }
+    .verse-attribution { font-family: 'Lora', serif; font-size: 11px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--bone-dim); }
+
+    /* ---------- three prayers triptych ---------- */
+    .prayers { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin: 44px 0; }
+    .prayer { border: 1px solid var(--hairline); border-radius: 4px; padding: 22px 18px; text-align: center; background: rgba(237,228,211,0.025); }
+    .prayer .pnum { font-family: 'Cormorant Garamond', serif; font-style: italic; color: var(--gold-deep); font-size: 13px; letter-spacing: 0.2em; margin-bottom: 14px; }
+    .prayer p { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 18px; line-height: 1.5; color: var(--bone); margin: 0; }
+
+    /* ---------- pull quote ---------- */
+    .pull-quote { margin: 76px auto; max-width: 520px; text-align: center; }
+    .pull-quote-text { font-family: 'Cormorant Garamond', serif; font-size: clamp(28px, 5vw, 38px); font-weight: 300; font-style: italic; color: var(--gold); line-height: 1.35; margin-bottom: 24px; letter-spacing: 0.005em; }
+    .pull-quote-attribution { font-family: 'Lora', serif; font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--bone-dim); max-width: 380px; margin: 0 auto; line-height: 1.7; }
+
+    /* ---------- closing ---------- */
+    .closing { margin-top: 100px; padding-top: 52px; border-top: 1px solid var(--hairline); text-align: center; }
+    .closing p { font-family: 'Cormorant Garamond', serif; font-size: clamp(19px, 2.6vw, 22px); font-style: italic; color: var(--bone); line-height: 1.65; margin-bottom: 22px; max-width: 480px; margin-left: auto; margin-right: auto; }
+    .closing p.final { color: var(--gold); margin-top: 28px; }
+    .real-note { font-family: 'Lora', serif; font-style: normal; font-size: 15px; color: var(--bone-dim); line-height: 1.7; max-width: 480px; margin: 0 auto 30px; }
+
+    /* ---------- mobile ---------- */
+    @media (max-width: 640px) {
+      body { font-size: 17px; line-height: 1.74; }
+      .page { padding: 40px 22px 80px; }
+      .hero { padding: 12px 0 52px; }
+      .lib-hero { padding: 24px 0 48px; }
+      .chapter { margin: 48px 0; }
+      .verse, .pull-quote { margin: 56px auto; }
+      .closing { margin-top: 76px; padding-top: 40px; }
+      .cards { grid-template-columns: 1fr; }
+      .prayers { grid-template-columns: 1fr; }
+      .story-nav { margin-top: 68px; }
+      .chapter p.drop:first-of-type::first-letter { font-size: 3.6em; margin-right: 8px; }
+    }
+
+    /* ---------- motion master switches ---------- */
+    @media (prefers-reduced-motion: no-preference) {
+      body[data-on] .view.active { animation: rise .6s ease both; }
+      @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+      .plate:hover { transform: scale(1.012); }
+      .twinkle { animation: twinkle 5s ease-in-out infinite; }
+      .twinkle.t2 { animation-delay: 1.3s; animation-duration: 6s; }
+      .twinkle.t3 { animation-delay: 2.6s; animation-duration: 4.5s; }
+      .twinkle.t4 { animation-delay: 0.8s; animation-duration: 5.5s; }
+      @keyframes twinkle { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.75; } }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="stars" aria-hidden="true">
+    <svg viewBox="0 0 1000 1800" preserveAspectRatio="xMidYMid slice">
+      <g fill="#EDE4D3">
+        <circle cx="120" cy="80" r="1.2" opacity="0.55" class="twinkle"/><circle cx="300" cy="140" r="0.8" opacity="0.4" class="twinkle t2"/>
+        <circle cx="480" cy="60" r="1.5" opacity="0.65" class="twinkle t3"/><circle cx="650" cy="200" r="1.0" opacity="0.5" class="twinkle t4"/>
+        <circle cx="820" cy="120" r="0.7" opacity="0.35" class="twinkle"/><circle cx="920" cy="280" r="1.3" opacity="0.55" class="twinkle t2"/>
+        <circle cx="80" cy="380" r="1.0" opacity="0.45" class="twinkle t3"/><circle cx="250" cy="480" r="0.6" opacity="0.3" class="twinkle"/>
+        <circle cx="430" cy="420" r="1.2" opacity="0.55" class="twinkle t4"/><circle cx="580" cy="550" r="0.9" opacity="0.45" class="twinkle t2"/>
+        <circle cx="740" cy="460" r="1.4" opacity="0.6" class="twinkle"/><circle cx="880" cy="620" r="0.7" opacity="0.35" class="twinkle t3"/>
+        <circle cx="160" cy="720" r="0.8" opacity="0.4" class="twinkle t4"/><circle cx="340" cy="810" r="1.1" opacity="0.5" class="twinkle"/>
+        <circle cx="520" cy="760" r="0.6" opacity="0.3" class="twinkle t2"/><circle cx="700" cy="870" r="1.3" opacity="0.55" class="twinkle t3"/>
+        <circle cx="890" cy="940" r="0.9" opacity="0.4" class="twinkle"/><circle cx="60" cy="1020" r="1.0" opacity="0.45" class="twinkle t4"/>
+        <circle cx="240" cy="1100" r="0.7" opacity="0.35" class="twinkle t2"/><circle cx="440" cy="1180" r="1.2" opacity="0.55" class="twinkle"/>
+        <circle cx="610" cy="1080" r="0.8" opacity="0.4" class="twinkle t3"/><circle cx="780" cy="1240" r="1.0" opacity="0.5" class="twinkle t4"/>
+        <circle cx="920" cy="1320" r="0.6" opacity="0.3" class="twinkle"/><circle cx="140" cy="1340" r="0.9" opacity="0.45" class="twinkle t2"/>
+        <circle cx="340" cy="1430" r="1.1" opacity="0.5" class="twinkle t3"/><circle cx="550" cy="1390" r="0.7" opacity="0.35" class="twinkle"/>
+        <circle cx="730" cy="1480" r="1.2" opacity="0.55" class="twinkle t4"/><circle cx="900" cy="1620" r="0.8" opacity="0.4" class="twinkle t2"/>
+        <circle cx="180" cy="1580" r="1.0" opacity="0.45" class="twinkle"/><circle cx="400" cy="1680" r="0.7" opacity="0.35" class="twinkle t3"/>
+        <circle cx="620" cy="1720" r="0.9" opacity="0.45" class="twinkle t4"/>
+      </g>
+    </svg>
+  </div>
+
+  <main>
+
+    <!-- ============ HOME ============ -->
+    <section class="view" id="home">
+      <div class="page">
+        <header class="lib-hero">
+          <svg class="lib-scene reveal" width="280" height="76" viewBox="0 0 400 100" aria-hidden="true">
+            <circle cx="60" cy="22" r="0.9" fill="#EDE4D3" opacity="0.7"/><circle cx="140" cy="14" r="1.4" fill="#EDE4D3" opacity="0.85"/>
+            <circle cx="210" cy="30" r="0.7" fill="#EDE4D3" opacity="0.55"/><circle cx="300" cy="18" r="1.1" fill="#D4AB5A" opacity="0.9"/>
+            <circle cx="350" cy="34" r="0.8" fill="#EDE4D3" opacity="0.65"/>
+            <path d="M 0 78 Q 200 58, 400 78" stroke="#D4AB5A" stroke-width="0.7" fill="none" opacity="0.55"/>
+            <g transform="translate(200,52)"><circle r="9" fill="#D4AB5A" opacity="0.9"/><circle cx="3.5" cy="-1.5" r="7.5" fill="#0B1427"/></g>
+          </svg>
+          <p class="lib-eyebrow reveal">Stories to read by starlight</p>
+          <h1 class="lib-title reveal">The Lamplight Library</h1>
+          <p class="lib-sub reveal d1">Three of the oldest stories from the Arabic world — one of wonder, one of longing, one of a love that was fought for and won. Pour something warm, and choose where to begin.</p>
+          <div class="lib-rule reveal d1"></div>
+        </header>
+
+        <p class="shelf-label reveal">Three tales · choose one</p>
+        <div class="cards">
+
+          <button class="card reveal" data-go="gazelle" aria-label="Read: A Boy Raised by a Gazelle">
+            <svg class="vignette" viewBox="0 0 360 200" role="img" aria-label="A gazelle on a moonlit shore">
+              <rect width="360" height="132" fill="#16203a"/><rect y="132" width="360" height="12" fill="#0f1726"/><rect y="144" width="360" height="56" fill="#e8d2a6"/>
+              <g fill="#e3b85a"><circle cx="40" cy="30" r="1.2"/><circle cx="100" cy="60" r="1"/><circle cx="150" cy="28" r="1.4"/><circle cx="210" cy="70" r="1"/><circle cx="250" cy="36" r="1.2"/><circle cx="300" cy="86" r="1.4"/><circle cx="330" cy="40" r="1"/><circle cx="70" cy="100" r="1"/><circle cx="180" cy="108" r="0.9"/></g>
+              <g transform="translate(296,52)"><circle r="20" fill="#e3b85a"/><circle cx="7" cy="-3" r="16" fill="#16203a"/></g>
+              <g fill="#1f1410">
+                <ellipse cx="150" cy="150" rx="30" ry="11"/>
+                <line x1="128" y1="159" x2="127" y2="182" stroke="#1f1410" stroke-width="3"/><line x1="137" y1="159" x2="136" y2="182" stroke="#1f1410" stroke-width="3"/>
+                <line x1="163" y1="159" x2="164" y2="182" stroke="#1f1410" stroke-width="3"/><line x1="172" y1="159" x2="173" y2="182" stroke="#1f1410" stroke-width="3"/>
+                <path d="M128,145 q-9,-3 -14,0" stroke="#1f1410" stroke-width="2" fill="none" stroke-linecap="round"/>
+                <path d="M172,146 q16,-14 22,-32" stroke="#1f1410" stroke-width="7" fill="none" stroke-linecap="round"/>
+                <ellipse cx="196" cy="116" rx="8" ry="4.5" transform="rotate(-30 196 116)"/>
+                <path d="M192,112 q-5,-9 -10,-16" stroke="#1f1410" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M199,110 q-4,-9 -9,-16" stroke="#1f1410" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+              </g>
+            </svg>
+            <div class="card-body">
+              <div class="tale-arabic" lang="ar">حَيّ بن يَقْظان</div>
+              <h2>A Boy Raised by a Gazelle</h2>
+              <p class="meta">Wonder · a 7-minute read</p>
+              <p class="teaser">A baby set adrift washes ashore, and a grieving gazelle decides he is hers.</p>
+              <span class="open">Read <span class="arr">→</span></span>
+            </div>
+          </button>
+
+          <button class="card reveal d1" data-go="qays" aria-label="Read: Qays and Layla">
+            <svg class="vignette" viewBox="0 0 360 200" role="img" aria-label="A lone figure beneath a desert moon">
+              <rect width="360" height="144" fill="#1a1f38"/>
+              <path d="M0,144 L0,120 Q90,100 180,116 Q270,128 360,108 L360,144 Z" fill="#3a2e44"/>
+              <rect y="144" width="360" height="56" fill="#c79a5e"/>
+              <path d="M0,160 Q90,150 180,160 T360,158 L360,200 L0,200 Z" fill="#a87c45"/>
+              <g fill="#e3b85a"><circle cx="50" cy="34" r="1.2"/><circle cx="110" cy="64" r="1"/><circle cx="160" cy="30" r="1.4"/><circle cx="220" cy="72" r="1"/><circle cx="270" cy="40" r="1.2"/><circle cx="320" cy="80" r="1.3"/><circle cx="90" cy="104" r="0.9"/><circle cx="250" cy="110" r="0.9"/></g>
+              <g transform="translate(70,60)"><circle r="18" fill="#e3b85a"/><circle cx="6" cy="-3" r="14" fill="#1a1f38"/></g>
+              <g fill="#241726">
+                <ellipse cx="182" cy="150" rx="9" ry="11"/>
+                <path d="M173,160 q-1,-13 4,-17 6,-3 11,0 5,4 4,17 z"/>
+                <rect x="174" y="174" width="14" height="14" rx="2"/>
+              </g>
+            </svg>
+            <div class="card-body">
+              <div class="tale-arabic" lang="ar">قيس وليلى</div>
+              <h2>Qays &amp; Layla</h2>
+              <p class="meta">Longing · an 8-minute read</p>
+              <p class="teaser">The most famous love in Arabic — and the strangest. A man who may have loved the longing more than the woman.</p>
+              <span class="open">Read <span class="arr">→</span></span>
+            </div>
+          </button>
+
+          <button class="card reveal d2" data-go="antarah" aria-label="Read: Antarah and Abla">
+            <svg class="vignette" viewBox="0 0 360 200" role="img" aria-label="A mounted warrior beneath desert stars">
+              <rect width="360" height="146" fill="#1c1726"/>
+              <path d="M0,146 L0,124 Q120,108 240,122 Q300,128 360,116 L360,146 Z" fill="#3a2420"/>
+              <rect y="146" width="360" height="54" fill="#b5793f"/>
+              <path d="M0,166 Q120,154 240,166 T360,160 L360,200 L0,200 Z" fill="#8f5a2c"/>
+              <g fill="#e3b85a"><circle cx="44" cy="32" r="1.2"/><circle cx="110" cy="60" r="1"/><circle cx="180" cy="28" r="1.4"/><circle cx="250" cy="64" r="1"/><circle cx="300" cy="34" r="1.2"/><circle cx="330" cy="74" r="1.3"/></g>
+              <g transform="translate(300,52)"><circle r="16" fill="#e3b85a"/><circle cx="6" cy="-3" r="13" fill="#1c1726"/></g>
+              <g fill="#1a120c">
+                <ellipse cx="150" cy="140" rx="46" ry="13"/>
+                <line x1="118" y1="148" x2="116" y2="172" stroke="#1a120c" stroke-width="4"/><line x1="132" y1="150" x2="131" y2="174" stroke="#1a120c" stroke-width="4"/>
+                <line x1="168" y1="150" x2="169" y2="174" stroke="#1a120c" stroke-width="4"/><line x1="182" y1="148" x2="184" y2="172" stroke="#1a120c" stroke-width="4"/>
+                <path d="M188,135 q14,-6 22,-3" stroke="#1a120c" stroke-width="4" fill="none" stroke-linecap="round"/>
+                <path d="M112,132 q-10,2 -16,8" stroke="#1a120c" stroke-width="7" fill="none" stroke-linecap="round"/>
+                <ellipse cx="120" cy="120" rx="7" ry="9"/>
+                <path d="M115,112 q5,-8 12,-9 6,0 8,4 l3,14 q-12,3 -23,1 z"/>
+                <line x1="138" y1="96" x2="150" y2="70" stroke="#1a120c" stroke-width="2.4"/>
+              </g>
+            </svg>
+            <div class="card-body">
+              <div class="tale-arabic" lang="ar">عَنْتَرَة وعَبْلَة</div>
+              <h2>Antarah &amp; Abla</h2>
+              <p class="meta">Triumph · a 7-minute read</p>
+              <p class="teaser">The outcast son of an enslaved mother, who won his freedom, his name, and his love — with a sword and a poem.</p>
+              <span class="open">Read <span class="arr">→</span></span>
+            </div>
+          </button>
+
+        </div>
+        <p class="lib-foot reveal">Carried across fourteen hundred years, from the deserts of Arabia to the gardens of Andalusia.</p>
+      </div>
+    </section>
+
+    <!-- ============ STORY 1: GAZELLE ============ -->
+    <article class="view" id="gazelle">
+      <div class="page">
+        <button class="nav-back" data-go="home"><span class="arr">←</span> The library</button>
+
+        <header class="hero">
+          <svg class="hero-scene reveal" width="260" height="70" viewBox="0 0 400 100" aria-hidden="true">
+            <circle cx="60" cy="22" r="0.9" fill="#EDE4D3" opacity="0.7"/><circle cx="140" cy="14" r="1.4" fill="#EDE4D3" opacity="0.85"/><circle cx="210" cy="30" r="0.7" fill="#EDE4D3" opacity="0.55"/><circle cx="295" cy="18" r="1.1" fill="#D4AB5A" opacity="0.85"/><circle cx="350" cy="34" r="0.8" fill="#EDE4D3" opacity="0.65"/>
+            <path d="M 0 76 Q 200 56, 400 76" stroke="#D4AB5A" stroke-width="0.7" fill="none" opacity="0.55"/>
+            <line x1="200" y1="56" x2="200" y2="62" stroke="#D4AB5A" stroke-width="0.9" opacity="0.95"/><circle cx="200" cy="54.5" r="0.9" fill="#D4AB5A" opacity="0.95"/>
+          </svg>
+          <div class="hero-arabic reveal" lang="ar">حَيّ بن يَقْظان</div>
+          <div class="hero-english reveal d1">A Boy Raised by a Gazelle</div>
+          <div class="hero-subtitle reveal d1">An Andalusian tale of the 12th century · and, it turns out, a true one</div>
+        </header>
+
+        <svg class="plate reveal" viewBox="0 0 680 360" role="img" aria-label="A gazelle on a moonlit shore beneath a starry sky">
+          <rect width="680" height="236" fill="#172238"/><rect y="236" width="680" height="14" fill="#0d1622"/><rect y="250" width="680" height="110" fill="#e8d2a6"/>
+          <g fill="#f4cf60"><circle cx="50" cy="40" r="1.1"/><circle cx="110" cy="92" r="1.6"/><circle cx="180" cy="56" r="1"/><circle cx="235" cy="116" r="1.4"/><circle cx="285" cy="44" r="1.2"/><circle cx="340" cy="86" r="1"/><circle cx="405" cy="46" r="1.7"/><circle cx="465" cy="138" r="1"/><circle cx="520" cy="68" r="1.3"/><circle cx="600" cy="138" r="1.2"/><circle cx="640" cy="56" r="1.5"/><circle cx="80" cy="180" r="1"/><circle cx="205" cy="196" r="0.9"/><circle cx="305" cy="206" r="1.1"/><circle cx="470" cy="196" r="0.9"/></g>
+          <g transform="translate(556,86)"><circle r="32" fill="#f4cf60"/><circle cx="10" cy="-5" r="27" fill="#172238"/></g>
+          <g transform="translate(250,322)"><ellipse rx="16" ry="5" fill="#a8916b"/><ellipse cy="-4" rx="12" ry="4.5" fill="#c4a47a"/><ellipse cx="-3" cy="-8" rx="6" ry="3.5" fill="#f0d9a8"/></g>
+          <g fill="#1f1410">
+            <ellipse cx="400" cy="300" rx="42" ry="16"/>
+            <line x1="368" y1="313" x2="366" y2="342" stroke="#1f1410" stroke-width="4" stroke-linecap="round"/><line x1="381" y1="313" x2="379" y2="342" stroke="#1f1410" stroke-width="4" stroke-linecap="round"/><line x1="419" y1="313" x2="421" y2="342" stroke="#1f1410" stroke-width="4" stroke-linecap="round"/><line x1="432" y1="313" x2="434" y2="342" stroke="#1f1410" stroke-width="4" stroke-linecap="round"/>
+            <path d="M357,292 Q344,288 337,293" stroke="#1f1410" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+            <path d="M441,292 Q463,272 472,246" stroke="#1f1410" stroke-width="9" fill="none" stroke-linecap="round"/>
+            <ellipse cx="475" cy="240" rx="11" ry="6.5" transform="rotate(-30 475 240)"/>
+            <path d="M470,234 Q462,221 455,210" stroke="#1f1410" stroke-width="2.2" fill="none" stroke-linecap="round"/><path d="M479,232 Q472,219 465,210" stroke="#1f1410" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+            <ellipse cx="467" cy="236" rx="3.8" ry="2.2" transform="rotate(-50 467 236)"/>
+          </g>
+        </svg>
+
+        <section class="chapter">
+          <div class="chapter-label reveal">I</div>
+          <h2 class="chapter-title reveal">The Island</h2>
+          <p class="drop reveal">Long ago, beyond the trade winds and the known coasts, there was an island. It lay on the equator, where the seasons were so gentle that the trees never lost their leaves and the fruit never lost its sweetness. No people had ever walked its shores. The animals there did not know fear.</p>
+          <p class="reveal">This is where the story takes place. But it is not where the boy begins. The boy begins on another island, far away, in trouble.</p>
+        </section>
+
+        <section class="chapter">
+          <div class="chapter-label reveal">II</div>
+          <h2 class="chapter-title reveal">The Crossing</h2>
+          <svg class="plate reveal" viewBox="0 0 680 250" role="img" aria-label="A small wooden box adrift on a starlit sea">
+            <rect width="680" height="250" fill="#0e1a2c"/>
+            <g fill="#f4cf60"><circle cx="55" cy="34" r="1.2"/><circle cx="130" cy="64" r="0.9"/><circle cx="210" cy="34" r="1.4"/><circle cx="285" cy="86" r="1"/><circle cx="370" cy="46" r="1.2"/><circle cx="455" cy="92" r="1.5"/><circle cx="610" cy="40" r="1.1"/><circle cx="115" cy="116" r="1"/><circle cx="240" cy="126" r="0.8"/><circle cx="340" cy="116" r="1.2"/><circle cx="595" cy="138" r="0.9"/></g>
+            <g transform="translate(540,76)"><circle r="18" fill="#f4cf60"/><circle cx="6" cy="-3" r="15" fill="#0e1a2c"/></g>
+            <g stroke="#1e3050" fill="none" stroke-width="0.8"><path d="M0,172 Q56,168 112,172 T224,172 T336,172 T448,172 T560,172 T680,172"/><path d="M0,192 Q56,188 112,192 T224,192 T336,192 T448,192 T560,192 T680,192"/><path d="M0,212 Q56,208 112,212 T224,212 T336,212 T448,212 T560,212 T680,212"/><path d="M0,232 Q56,228 112,232 T224,232 T336,232 T448,232 T560,232 T680,232"/></g>
+            <g transform="translate(340,176) rotate(-3)"><rect x="-26" y="-12" width="52" height="24" fill="#6b4d2f" stroke="#3d2620" stroke-width="0.6"/><line x1="-26" y1="-4" x2="26" y2="-4" stroke="#3d2620" stroke-width="0.6"/><line x1="-26" y1="4" x2="26" y2="4" stroke="#3d2620" stroke-width="0.6"/><line x1="-9" y1="-12" x2="-9" y2="12" stroke="#3d2620" stroke-width="0.6"/><line x1="9" y1="-12" x2="9" y2="12" stroke="#3d2620" stroke-width="0.6"/></g>
+            <ellipse cx="540" cy="228" rx="46" ry="3" fill="#f4cf60" opacity="0.18"/>
+          </svg>
+          <p class="drop reveal">On the larger island to the east there lived a princess. She had married in secret, against her brother's wishes, and when she gave birth to a son she knew her brother would not let the child live. So she did what mothers have always done when the world refuses to make room for their love — she made the room herself. She wrapped the baby in soft cloth, laid him in a sealed wooden box, and gave him to the tide.</p>
+          <p class="reveal">The sea, that night, was kind. The current carried the box gently westward — past the reefs, past the dawn — until it came to rest on the shore of the empty island.</p>
+          <p class="reveal">The baby cried.</p>
+        </section>
+
+        <section class="chapter">
+          <div class="chapter-label reveal">III</div>
+          <h2 class="chapter-title reveal">The Gazelle</h2>
+          <svg class="plate reveal" viewBox="0 0 680 250" role="img" aria-label="A gazelle lowers her head toward a small bundle on the sand">
+            <rect width="680" height="130" fill="#f4c890"/><rect y="130" width="680" height="22" fill="#7a8a6e"/><rect y="152" width="680" height="98" fill="#e8d2a6"/>
+            <circle cx="110" cy="130" r="26" fill="#f5e0a0" opacity="0.85"/><circle cx="110" cy="130" r="44" fill="#f5e0a0" opacity="0.22"/>
+            <g transform="translate(250,218)"><ellipse rx="26" ry="8" fill="#a8916b"/><ellipse cy="-3" rx="22" ry="6.5" fill="#d6bb88"/><ellipse cx="-3" cy="-7" rx="8" ry="4.5" fill="#f0d9a8"/></g>
+            <g fill="#3d2820">
+              <ellipse cx="395" cy="196" rx="42" ry="15"/>
+              <line x1="363" y1="208" x2="362" y2="238" stroke="#3d2820" stroke-width="4" stroke-linecap="round"/><line x1="376" y1="208" x2="375" y2="238" stroke="#3d2820" stroke-width="4" stroke-linecap="round"/><line x1="414" y1="208" x2="415" y2="238" stroke="#3d2820" stroke-width="4" stroke-linecap="round"/><line x1="427" y1="208" x2="428" y2="238" stroke="#3d2820" stroke-width="4" stroke-linecap="round"/>
+              <path d="M352,188 Q339,184 332,189" stroke="#3d2820" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+              <path d="M436,190 Q372,212 300,228" stroke="#3d2820" stroke-width="8.5" fill="none" stroke-linecap="round"/>
+              <ellipse cx="292" cy="230" rx="11" ry="6" transform="rotate(20 292 230)"/>
+              <path d="M289,224 Q282,213 276,205" stroke="#3d2820" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M295,222 Q290,211 285,203" stroke="#3d2820" stroke-width="2" fill="none" stroke-linecap="round"/>
+              <ellipse cx="300" cy="223" rx="3.8" ry="2.2" transform="rotate(20 300 223)"/>
+            </g>
+          </svg>
+          <p class="drop reveal">In the grove above the shore, a gazelle was grieving. Her fawn had been taken by an eagle some days before, and her body still ached with the milk she had no one to give. When the wind carried the cry of the child to her ears, she did not hesitate. She did not stop to wonder. She ran.</p>
+          <p class="reveal">She found him on the sand — this strange small thing, pink and trembling, smelling nothing like a fawn. But she lowered her nose to his cheek, and he turned toward her, and his small hand closed around the soft fur of her throat. And in that moment, somewhere beyond reason, she became his mother.</p>
+          <p class="reveal">She named him by lying down beside him.</p>
+        </section>
+
+        <section class="chapter">
+          <div class="chapter-label reveal">IV</div>
+          <h2 class="chapter-title reveal">A Childhood Without Words</h2>
+          <svg class="plate reveal" viewBox="0 0 680 250" role="img" aria-label="A small child in a cloak of leaves walks among a herd of gazelles in daylight">
+            <rect width="680" height="150" fill="#cfe0e6"/><rect y="150" width="680" height="100" fill="#b6c08a"/>
+            <path d="M0,150 Q170,138 340,150 T680,146 L680,170 L0,170 Z" fill="#a3b078"/>
+            <circle cx="120" cy="52" r="30" fill="#fdf3d0" opacity="0.9"/>
+            <g fill="#7d6a4a">
+              <g transform="translate(540,150)"><ellipse cx="0" cy="-2" rx="34" ry="11"/><line x1="-22" y1="6" x2="-24" y2="-2" stroke="#7d6a4a" stroke-width="3"/><line x1="-8" y1="7" x2="-9" y2="-2" stroke="#7d6a4a" stroke-width="3"/><line x1="10" y1="7" x2="11" y2="-2" stroke="#7d6a4a" stroke-width="3"/><line x1="24" y1="6" x2="25" y2="-2" stroke="#7d6a4a" stroke-width="3"/><path d="M30,-4 q12,-3 18,-14" stroke="#7d6a4a" stroke-width="5" fill="none" stroke-linecap="round"/><ellipse cx="50" cy="-20" rx="7" ry="4"/><path d="M46,-24 q-2,-7 -6,-12" stroke="#7d6a4a" stroke-width="1.4" fill="none"/><path d="M52,-24 q-1,-7 -4,-12" stroke="#7d6a4a" stroke-width="1.4" fill="none"/></g>
+              <g transform="translate(600,158) scale(0.7)"><ellipse cx="0" cy="-2" rx="34" ry="11"/><line x1="-22" y1="6" x2="-24" y2="-2" stroke="#7d6a4a" stroke-width="4"/><line x1="-8" y1="7" x2="-9" y2="-2" stroke="#7d6a4a" stroke-width="4"/><line x1="10" y1="7" x2="11" y2="-2" stroke="#7d6a4a" stroke-width="4"/><path d="M30,-4 q12,-3 18,-14" stroke="#7d6a4a" stroke-width="6" fill="none" stroke-linecap="round"/><ellipse cx="50" cy="-20" rx="8" ry="5"/></g>
+            </g>
+            <g transform="translate(250,168)">
+              <path d="M-16,0 Q-20,-30 0,-38 20,-30 16,0 Z" fill="#5f7d3e"/>
+              <path d="M-13,-4 l-6,8 M-4,-8 l-5,9 M5,-9 l-4,9 M14,-5 l-5,8" stroke="#4e6a32" stroke-width="2"/>
+              <circle cx="0" cy="-44" r="9" fill="#caa882"/>
+              <path d="M-9,0 q-4,8 -3,20 M9,0 q4,8 3,20" stroke="#caa882" stroke-width="5" fill="none" stroke-linecap="round"/>
+            </g>
+          </svg>
+          <p class="drop reveal">The boy grew up among the gazelles. His mother taught him which leaves were good and which to leave alone. She taught him to hear the rustle that means danger and the rustle that means rain. When he tried to walk on four legs and could not, she watched him patiently until he discovered, on his own, the secret of his two.</p>
+          <p class="reveal">He learned the language of the herd — the soft snorts of greeting, the sharper calls of warning. He never spoke a human word. He did not know there were human words to speak.</p>
+          <p class="reveal">One day he saw, in the still water of a pool, that he was different. He had no horns, no fur, no swiftness of foot. He wept. Then he wove himself a cloak of leaves, tied branches to his hands like little hooves, and went back to her. She rested her nose against his shoulder. Whatever shape he was, he was hers.</p>
+        </section>
+
+        <section class="chapter">
+          <div class="chapter-label reveal">V</div>
+          <h2 class="chapter-title reveal">The Quiet Question</h2>
+          <svg class="plate reveal" viewBox="0 0 680 250" role="img" aria-label="A young man sits beside a resting gazelle in a meadow at golden hour">
+            <rect width="680" height="146" fill="#f4b876"/>
+            <path d="M0,146 L0,120 Q110,100 230,116 Q340,128 450,104 Q560,88 680,108 L680,146 Z" fill="#8b6a4d"/>
+            <rect y="146" width="680" height="104" fill="#9aa86a"/>
+            <circle cx="120" cy="66" r="30" fill="#f5d490" opacity="0.8"/><circle cx="120" cy="66" r="48" fill="#f5d490" opacity="0.22"/>
+            <g fill="#3d4830"><rect x="92" y="108" width="5" height="38"/><ellipse cx="94" cy="104" rx="26" ry="22"/></g>
+            <g fill="#3d2820">
+              <ellipse cx="340" cy="204" rx="62" ry="12"/><ellipse cx="316" cy="214" rx="22" ry="5"/><ellipse cx="364" cy="214" rx="20" ry="5"/>
+              <path d="M270,200 Q255,192 246,200" stroke="#3d2820" stroke-width="6.5" fill="none" stroke-linecap="round"/><ellipse cx="242" cy="204" rx="11" ry="6"/>
+              <path d="M238,198 Q231,190 226,185" stroke="#3d2820" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M242,196 Q237,188 233,183" stroke="#3d2820" stroke-width="2" fill="none" stroke-linecap="round"/><ellipse cx="249" cy="197" rx="3.2" ry="2"/>
+            </g>
+            <g fill="#3d2820">
+              <ellipse cx="500" cy="170" rx="10" ry="12"/>
+              <path d="M489,181 Q487,166 494,161 500,159 507,161 515,166 513,181 L515,218 Q515,222 511,222 L489,222 Q485,222 485,218 Z"/>
+              <path d="M489,190 Q480,200 476,216" stroke="#3d2820" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M513,190 Q520,200 524,214" stroke="#3d2820" stroke-width="5" fill="none" stroke-linecap="round"/>
+              <rect x="487" y="222" width="6" height="16" rx="2"/><rect x="507" y="222" width="6" height="16" rx="2"/>
+            </g>
+          </svg>
+          <p class="drop reveal">In time, the gazelle grew old. She moved more slowly through the grass. The boy — now a young man — slowed his step to match hers, brought her the softest leaves, and slept beside her so she would not be cold.</p>
+          <p class="reveal">One morning, she did not wake.</p>
+          <p class="reveal">He sat down beside her and stayed there a long time. Something had left her. He could see it without seeing it: the body of his mother was still here, but his mother was not. Where had she gone? What was the difference between a body that breathes and a body that does not? What had he loved all these years, if not the warm shape lying still before him?</p>
+          <p class="reveal">These were his first questions. They were the seed of everything that followed.</p>
+        </section>
+
+        <section class="chapter">
+          <div class="chapter-label reveal">VI</div>
+          <h2 class="chapter-title reveal">The Sky Opens</h2>
+          <svg class="plate reveal" viewBox="0 0 680 260" role="img" aria-label="A small figure stands on a dark hill looking up at a sky full of stars">
+            <rect width="680" height="260" fill="#101a30"/>
+            <g fill="#f4cf60"><circle cx="40" cy="36" r="1.3"/><circle cx="92" cy="80" r="1"/><circle cx="150" cy="40" r="1.6"/><circle cx="205" cy="96" r="1.1"/><circle cx="260" cy="50" r="1.3"/><circle cx="320" cy="30" r="1"/><circle cx="372" cy="92" r="1.5"/><circle cx="430" cy="44" r="1.1"/><circle cx="492" cy="84" r="1.3"/><circle cx="548" cy="38" r="1"/><circle cx="606" cy="96" r="1.6"/><circle cx="650" cy="48" r="1.2"/><circle cx="70" cy="138" r="1"/><circle cx="180" cy="150" r="0.9"/><circle cx="300" cy="132" r="1.2"/><circle cx="420" cy="150" r="1"/><circle cx="540" cy="138" r="1.1"/><circle cx="630" cy="156" r="1"/><circle cx="120" cy="186" r="0.9"/><circle cx="380" cy="182" r="1"/><circle cx="560" cy="190" r="0.9"/></g>
+            <g stroke="#f4cf60" stroke-width="0.5" opacity="0.5" fill="none"><path d="M150,40 L205,96 L260,50 L320,30"/></g>
+            <g transform="translate(120,72)"><circle r="22" fill="#f4cf60" opacity="0.95"/><circle cx="8" cy="-4" r="18" fill="#101a30"/></g>
+            <path d="M0,230 Q170,196 340,210 Q510,222 680,200 L680,260 L0,260 Z" fill="#070d18"/>
+            <g fill="#070d18" transform="translate(355,196)"><ellipse cx="0" cy="-3" rx="8" ry="9"/><path d="M-9,8 Q-10,-6 -4,-11 0,-13 5,-11 12,-6 10,8 Z"/><path d="M-8,2 Q-15,-2 -18,-12" stroke="#070d18" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M9,2 Q16,-2 19,-12" stroke="#070d18" stroke-width="4" fill="none" stroke-linecap="round"/></g>
+          </svg>
+          <p class="drop reveal">After his grief had quieted, the boy began to look around him as if for the first time. He learned to make fire, and loved it — the only thing on the island that seemed alive the way he was, moving and hungry and warm, always reaching upward.</p>
+          <p class="reveal">And at night he looked up. The stars wheeled overhead in their slow, faithful circles, the same patterns returning season after season, never colliding, never lost. Such order, he thought, does not happen by accident. Someone must be holding it — the way his mother had once held him.</p>
+          <p class="reveal">Alone on his island, with no teacher and no book, with nothing but his own watching and wondering, the boy reasoned his way toward a quiet certainty: that behind the turning stars and the reaching fire and the love of a gazelle for a child not her own, there was something vast and gentle and good. He had been held all along.</p>
+        </section>
+
+        <section class="chapter">
+          <div class="chapter-label reveal">VII</div>
+          <h2 class="chapter-title reveal">Not Alone</h2>
+          <svg class="plate reveal" viewBox="0 0 680 250" role="img" aria-label="A small boat approaches a shore at dawn">
+            <rect width="680" height="150" fill="#f3d9b0"/><rect y="150" width="680" height="100" fill="#3f6f86"/>
+            <circle cx="560" cy="70" r="30" fill="#fbe6bf" opacity="0.95"/><circle cx="560" cy="70" r="52" fill="#fbe6bf" opacity="0.25"/>
+            <g stroke="#5d8497" fill="none" stroke-width="0.8" opacity="0.7"><path d="M0,176 Q80,172 160,176 T320,176 T480,176 T680,176"/><path d="M0,200 Q80,196 160,200 T320,200 T480,200 T680,200"/><path d="M0,224 Q80,220 160,224 T320,224 T480,224 T680,224"/></g>
+            <g transform="translate(250,168)">
+              <path d="M-44,0 Q0,18 44,0 L34,12 Q0,22 -34,12 Z" fill="#5b3f27"/>
+              <line x1="0" y1="0" x2="0" y2="-44" stroke="#5b3f27" stroke-width="2.4"/>
+              <path d="M2,-42 Q34,-34 30,-8 L2,-12 Z" fill="#e8dcc2"/>
+              <ellipse cx="-6" cy="-6" rx="4" ry="7" fill="#3d2a1a"/>
+            </g>
+            <g transform="translate(120,150)"><ellipse cx="0" cy="-2" rx="40" ry="8" fill="#cdb78a"/></g>
+          </svg>
+          <p class="drop reveal">The boy became a man, and the man grew wise — not from being told things, but from looking closely and loving what he saw. He lived in peace with the island, and the island with him.</p>
+          <p class="reveal">And then, one day, far across the water, a small boat appeared. In it was another person — the first the man had ever seen. They had no language in common, only patience and goodwill, and slowly they came to understand one another. The man learned, at last, that he was not the only one of his kind. He had a mother who chose him, a sky that held him, and now a friend who found him.</p>
+        </section>
+
+        <div class="closing reveal">
+          <p class="real-note">This story is real. A doctor and philosopher named Ibn Tufayl wrote it in Muslim Spain more than eight hundred years ago, to argue that a person alone, with nothing but their own eyes and heart, could find their way to truth. Centuries later it was translated into Latin and English — and it helped inspire a book you may know: <em style="font-style:italic;color:var(--bone-dim)">Robinson Crusoe</em>.</p>
+          <p class="final">Some children arrive in a sealed box on a strange tide. And still the world bends down, like a gazelle in the dark, and decides to love them.</p>
+        </div>
+
+        <div class="story-nav">
+          <button class="nav-back" data-go="home"><span class="arr">←</span> The library</button>
+          <button class="nav-next" data-go="qays"><span class="lbl">Read next</span><span class="ttl">Qays &amp; Layla →</span></button>
+        </div>
+      </div>
+    </article>
+
+    <!-- ============ STORY 2: QAYS & LAYLA (honest telling) ============ -->
+    <article class="view" id="qays">
+      <div class="page">
+        <button class="nav-back" data-go="home"><span class="arr">←</span> The library</button>
+
+        <header class="hero">
+          <svg class="hero-scene reveal" width="260" height="70" viewBox="0 0 400 100" aria-hidden="true">
+            <circle cx="60" cy="22" r="0.9" fill="#EDE4D3" opacity="0.7"/><circle cx="140" cy="14" r="1.4" fill="#EDE4D3" opacity="0.85"/><circle cx="210" cy="30" r="0.7" fill="#EDE4D3" opacity="0.55"/><circle cx="295" cy="18" r="1.1" fill="#D4AB5A" opacity="0.85"/><circle cx="350" cy="34" r="0.8" fill="#EDE4D3" opacity="0.65"/>
+            <path d="M 0 76 Q 200 56, 400 76" stroke="#D4AB5A" stroke-width="0.7" fill="none" opacity="0.55"/>
+            <line x1="200" y1="56" x2="200" y2="62" stroke="#D4AB5A" stroke-width="0.9" opacity="0.95"/><circle cx="200" cy="54.5" r="0.9" fill="#D4AB5A" opacity="0.95"/>
+          </svg>
+          <div class="hero-arabic reveal" lang="ar">قيس وليلى</div>
+          <div class="hero-english reveal d1">Qays &amp; Layla</div>
+          <div class="hero-subtitle reveal d1">The most famous love story in Arabic — and, when you look closely, the strangest</div>
+        </header>
+
+        <svg class="plate reveal" viewBox="0 0 680 360" role="img" aria-label="A lone figure sits among desert dunes beneath a vast starry sky and a crescent moon">
+          <rect width="680" height="236" fill="#1a1f3a"/>
+          <path d="M0,236 L0,210 Q140,180 300,206 Q440,228 540,196 Q620,170 680,190 L680,250 L0,250 Z" fill="#3a2c46"/>
+          <rect y="250" width="680" height="110" fill="#c79a5e"/>
+          <path d="M0,278 Q170,258 340,278 T680,272 L680,360 L0,360 Z" fill="#a87c45"/>
+          <path d="M0,316 Q200,300 400,318 T680,312 L680,360 L0,360 Z" fill="#8c6537"/>
+          <g fill="#e3b85a"><circle cx="44" cy="40" r="1.2"/><circle cx="104" cy="86" r="1.5"/><circle cx="168" cy="46" r="1"/><circle cx="226" cy="110" r="1.3"/><circle cx="288" cy="40" r="1.1"/><circle cx="346" cy="84" r="1"/><circle cx="410" cy="44" r="1.6"/><circle cx="472" cy="120" r="1"/><circle cx="534" cy="60" r="1.3"/><circle cx="600" cy="120" r="1.2"/><circle cx="646" cy="50" r="1.4"/><circle cx="80" cy="150" r="1"/><circle cx="210" cy="170" r="0.9"/><circle cx="320" cy="156" r="1.1"/><circle cx="500" cy="168" r="0.9"/><circle cx="610" cy="180" r="1"/></g>
+          <g stroke="#e3b85a" stroke-width="0.5" opacity="0.45" fill="none"><path d="M104,86 L168,46 L226,110 L288,40"/></g>
+          <g transform="translate(120,86)"><circle r="30" fill="#e3b85a"/><circle cx="10" cy="-5" r="25" fill="#1a1f3a"/></g>
+          <g fill="#241726" transform="translate(330,250)"><ellipse cx="0" cy="-2" rx="16" ry="18"/><path d="M-26,40 Q-30,2 -14,-10 0,-18 14,-10 30,2 26,40 Z"/><ellipse cx="0" cy="-30" rx="11" ry="13"/><path d="M-11,-30 Q-13,-46 0,-50 13,-46 11,-30 Z"/></g>
+        </svg>
+
+        <section class="chapter">
+          <div class="chapter-label reveal">I</div>
+          <h2 class="chapter-title reveal">The Boy We Are Not Sure Existed</h2>
+          <p class="drop reveal">Here is the first honest thing to say: we do not entirely know if Qays was real. There was, most likely, a young poet of that name in the Najd — the high desert of central Arabia — sometime around the year 680. A handful of aching verses survive under his name. But the story everyone tells about him was assembled, piece by piece, over hundreds of years, by storytellers who never met him and rarely agreed with one another.</p>
+          <p class="reveal">They do not even agree on how it began. One early version says Qays and Layla were cousins who grew up together, tending the same flocks, in love before they understood the word. Another says he saw her once, as a grown man, and was undone in a single glance.</p>
+          <p class="reveal">So read what follows the way the desert told it: as something half true, which is often truer than fact.</p>
+        </section>
+
+        <div class="verse reveal">
+          <div class="verse-arabic" lang="ar"><span class="line">تَعَلَّقَ روحي روحَها قبلَ خَلقِنا</span><span class="line">ومِنْ بعدِ ما كُنّا نِطافًا وفي المَهدِ</span></div>
+          <div class="verse-english">My soul clung to her soul before we were made,<br>and after — when we were drops of water, and again in the cradle.</div>
+          <div class="verse-attribution">attributed to Qays ibn al-Mulawwah</div>
+        </div>
+
+        <section class="chapter">
+          <div class="chapter-label reveal">II</div>
+          <h2 class="chapter-title reveal">The Name He Could Not Stop Saying</h2>
+          <svg class="plate reveal" viewBox="0 0 680 240" role="img" aria-label="A figure stands alone in a marketplace at dusk with arms lifted, reciting">
+            <rect width="680" height="150" fill="#e8b97e"/><rect y="150" width="680" height="90" fill="#cf9a5a"/>
+            <path d="M0,150 Q170,138 340,150 T680,146 L680,176 L0,176 Z" fill="#bd8546"/>
+            <circle cx="560" cy="58" r="24" fill="#f6dca2" opacity="0.9"/>
+            <g fill="#6b4a2c" opacity="0.85">
+              <rect x="60" y="92" width="70" height="58"/><path d="M52,92 L95,70 L138,92 Z"/>
+              <rect x="150" y="100" width="60" height="50"/><path d="M142,100 L180,82 L218,100 Z"/>
+              <rect x="470" y="98" width="64" height="52"/><path d="M462,98 L502,78 L542,98 Z"/>
+            </g>
+            <g fill="#3a2418">
+              <ellipse cx="330" cy="92" rx="11" ry="13"/>
+              <path d="M318,104 Q316,86 324,80 330,77 336,80 344,86 342,104 L344,142 Q344,146 340,146 L320,146 Q316,146 316,142 Z"/>
+              <path d="M320,112 Q304,98 298,80" stroke="#3a2418" stroke-width="6" fill="none" stroke-linecap="round"/>
+              <path d="M340,112 Q356,98 362,80" stroke="#3a2418" stroke-width="6" fill="none" stroke-linecap="round"/>
+            </g>
+            <g fill="none" stroke="#fff5dd" stroke-width="1.2" opacity="0.5"><path d="M366,74 q14,-6 26,-2"/><path d="M372,64 q16,-7 30,-3"/><path d="M360,84 q12,-5 22,-2"/></g>
+          </svg>
+          <p class="drop reveal">What we can say is this: Qays became a poet, and he could not stop saying her name. He said it in the marketplace. He said it to his camel. He said it to other poets, who said it back to him, until the whole desert was passing Layla's name from mouth to mouth like a coin.</p>
+          <p class="reveal">In that world, this was not romantic. It was a scandal. A woman's name belonged inside her family's tents. To carry it out, set it into rhyme, and let strangers sing it across the peninsula was to shame her household — and a shamed household could not then hand the girl to the man who shamed it. Everyone knew this. Qays, a poet, knew it best of all.</p>
+          <p class="reveal">And he never stopped.</p>
+        </section>
+
+        <section class="chapter">
+          <div class="chapter-label reveal">III</div>
+          <h2 class="chapter-title reveal">The Refusal He Built Himself</h2>
+          <svg class="plate reveal" viewBox="0 0 680 240" role="img" aria-label="Two tents stand far apart under an evening desert sky">
+            <rect width="680" height="150" fill="#e7a86a"/><rect y="150" width="680" height="90" fill="#cf9255"/>
+            <path d="M0,150 Q170,134 340,150 T680,146 L680,200 L0,200 Z" fill="#bd7f43"/>
+            <circle cx="540" cy="60" r="26" fill="#f3d39a" opacity="0.85"/><circle cx="540" cy="60" r="42" fill="#f3d39a" opacity="0.25"/>
+            <g fill="#5b3b24" stroke="#5b3b24"><path d="M70,150 L115,86 L160,150 Z"/><line x1="115" y1="86" x2="115" y2="60" stroke-width="2"/><path d="M100,150 L115,120 L130,150 Z" fill="#3d2716"/></g>
+            <g fill="#5b3b24" stroke="#5b3b24"><path d="M520,150 L565,86 L610,150 Z"/><line x1="565" y1="86" x2="565" y2="60" stroke-width="2"/><path d="M550,150 L565,120 L580,150 Z" fill="#3d2716"/></g>
+            <g stroke="#9c6b3c" stroke-width="0.6" fill="none" opacity="0.5"><path d="M250,150 Q340,144 430,150"/></g>
+          </svg>
+          <p class="drop reveal">When Qays at last went to Layla's father and asked to marry her, the answer was no. Of course it was no. He had spent years making it impossible — and her father, in any case, had already promised her to a man from a distant tribe. Layla was sent away across the sands.</p>
+          <p class="reveal">And here is where the story turns strange, and more interesting than the version usually told. Because some who have studied Qays for a lifetime believe he was never really trying to <em>reach</em> Layla at all. A poet of his gifts knew exactly what his verses would cost. It is hard not to suspect that, somewhere beneath knowing, he chose the locked door over the open one. That what he loved was not the girl he might have married and grown old beside — but the ache of wanting her, which could last forever, and never disappoint him.</p>
+          <p class="aside reveal">There is a whole school of old Arabic love-poetry, the <em>'Udhri</em> tradition, built on exactly this: a love kept pure precisely because it is never fulfilled. The longing <em>is</em> the love. To get what you want would be to lose it.</p>
+        </section>
+
+        <div class="verse reveal">
+          <div class="verse-arabic" lang="ar"><span class="line">وَما حُبُّ الدِيارِ شَغَفنَ قَلبي</span><span class="line">ولَكِنْ حُبُّ مَنْ سَكَنَ الدِيارا</span></div>
+          <div class="verse-english">It is not these dwellings that have seized my heart,<br>but love of the one who once lived within them.</div>
+          <div class="verse-attribution">attributed to Qays ibn al-Mulawwah</div>
+        </div>
+
+        <section class="chapter">
+          <div class="chapter-label reveal">IV</div>
+          <h2 class="chapter-title reveal">In Love With the Longing</h2>
+          <svg class="plate reveal" viewBox="0 0 680 250" role="img" aria-label="A lone figure sits in the night desert while gazelles gather to listen">
+            <rect width="680" height="250" fill="#15192e"/>
+            <g fill="#e3b85a"><circle cx="44" cy="36" r="1.2"/><circle cx="110" cy="74" r="1"/><circle cx="176" cy="40" r="1.5"/><circle cx="244" cy="86" r="1.1"/><circle cx="310" cy="44" r="1.2"/><circle cx="378" cy="30" r="1"/><circle cx="446" cy="80" r="1.4"/><circle cx="512" cy="44" r="1.1"/><circle cx="580" cy="84" r="1.3"/><circle cx="640" cy="46" r="1.4"/><circle cx="84" cy="130" r="1"/><circle cx="250" cy="140" r="0.9"/><circle cx="470" cy="132" r="1.1"/><circle cx="610" cy="140" r="0.9"/></g>
+            <g transform="translate(580,72)"><circle r="22" fill="#e3b85a"/><circle cx="8" cy="-4" r="18" fill="#15192e"/></g>
+            <path d="M0,210 Q170,184 340,200 Q510,214 680,192 L680,250 L0,250 Z" fill="#0c1020"/>
+            <g fill="#070a16" transform="translate(300,202)"><ellipse cx="0" cy="-4" rx="9" ry="10"/><path d="M-13,18 Q-15,0 -6,-12 0,-16 6,-12 15,0 13,18 Z"/><path d="M-10,6 Q-20,2 -26,-8" stroke="#070a16" stroke-width="4.5" fill="none" stroke-linecap="round"/><path d="M10,6 Q20,2 26,-8" stroke="#070a16" stroke-width="4.5" fill="none" stroke-linecap="round"/></g>
+            <g fill="#0c1020" transform="translate(430,210)"><ellipse cx="0" cy="0" rx="20" ry="7"/><line x1="-12" y1="6" x2="-12" y2="20" stroke="#0c1020" stroke-width="2.4"/><line x1="-4" y1="6" x2="-4" y2="20" stroke="#0c1020" stroke-width="2.4"/><line x1="10" y1="6" x2="10" y2="20" stroke="#0c1020" stroke-width="2.4"/><path d="M16,-2 Q26,-14 30,-30" stroke="#0c1020" stroke-width="4.5" fill="none" stroke-linecap="round"/><ellipse cx="31" cy="-33" rx="6" ry="3.5" transform="rotate(-32 31 -33)"/></g>
+            <g fill="#0c1020"><ellipse cx="150" cy="120" rx="5" ry="2.2"/><path d="M145,120 q-6,-3 -11,-1" stroke="#0c1020" stroke-width="1.4" fill="none"/><path d="M155,120 q6,-3 11,-1" stroke="#0c1020" stroke-width="1.4" fill="none"/></g>
+          </svg>
+          <p class="drop reveal">He walked out into the open desert and did not come back. He lived among the wild animals — the gazelles especially, because the poets always compared a beloved's eyes to a gazelle's, and he could not bear to be far from anything that reminded him of her. He grew thin. Travelers who stumbled on him knew him only by his verses, which were the most beautiful anyone had heard. People began to call him <em>Majnun</em> — not quite "madman," but something closer to <em>taken over</em>, emptied of everything but one thing.</p>
+          <p class="reveal">And the legend keeps a detail that gives the whole game away. In more than one telling, Qays is offered the very thing he supposedly wants — a meeting with Layla, a chance to be near her, in some versions even her hand once she is free. And he turns away. He will not close the distance. A real Layla, who could be tired or ordinary or simply <em>his</em>, was no match for the perfect Layla he carried in his head, who could never be lost because she had never quite been had.</p>
+        </section>
+
+        <section class="chapter">
+          <div class="chapter-label reveal">V</div>
+          <h2 class="chapter-title reveal">The Prayer Nobody Agrees On</h2>
+          <svg class="plate reveal" viewBox="0 0 680 250" role="img" aria-label="Pilgrims stand before a dark cube-shaped shrine beneath the stars">
+            <rect width="680" height="250" fill="#11142a"/>
+            <g fill="#e3b85a"><circle cx="50" cy="40" r="1.2"/><circle cx="130" cy="80" r="1"/><circle cx="210" cy="36" r="1.4"/><circle cx="300" cy="74" r="1"/><circle cx="390" cy="40" r="1.2"/><circle cx="470" cy="84" r="1.1"/><circle cx="560" cy="44" r="1.3"/><circle cx="630" cy="80" r="1"/><circle cx="100" cy="130" r="0.9"/><circle cx="600" cy="130" r="0.9"/></g>
+            <rect y="200" width="680" height="50" fill="#0c0f20"/>
+            <g transform="translate(340,150)">
+              <rect x="-46" y="-56" width="92" height="100" fill="#0a0a12" stroke="#2a2c40" stroke-width="1"/>
+              <rect x="-46" y="-12" width="92" height="10" fill="#caa24a" opacity="0.9"/>
+              <path d="M-46,-56 h92" stroke="#caa24a" stroke-width="1.5" opacity="0.7"/>
+            </g>
+            <g fill="#0c0f20">
+              <g transform="translate(250,176)"><ellipse cx="0" cy="-2" rx="7" ry="8"/><path d="M-8,16 Q-9,-2 -3,-10 0,-13 3,-10 9,-2 8,16 Z"/></g>
+              <g transform="translate(430,176)"><ellipse cx="0" cy="-2" rx="7" ry="8"/><path d="M-8,16 Q-9,-2 -3,-10 0,-13 3,-10 9,-2 8,16 Z"/></g>
+              <g transform="translate(212,182) scale(0.85)"><ellipse cx="0" cy="-2" rx="7" ry="8"/><path d="M-8,16 Q-9,-2 -3,-10 0,-13 3,-10 9,-2 8,16 Z"/></g>
+              <g transform="translate(470,182) scale(0.85)"><ellipse cx="0" cy="-2" rx="7" ry="8"/><path d="M-8,16 Q-9,-2 -3,-10 0,-13 3,-10 9,-2 8,16 Z"/></g>
+            </g>
+          </svg>
+          <p class="drop reveal">His father, desperate, took him on the long pilgrimage to Mecca, hoping the holiest place on earth might cure him. At the great shrine, the old man told his son to lift his hands and pray for the love to be lifted from his heart.</p>
+          <p class="reveal">And here the story shatters into pieces, because no two storytellers have ever agreed on what Qays actually prayed. You will find all of these, told with equal certainty:</p>
+          <div class="prayers reveal">
+            <div class="prayer"><div class="pnum">one telling</div><p>"Lord, heal me of her. Lift this love away."</p></div>
+            <div class="prayer"><div class="pnum">another</div><p>"Lord, do not lessen it — make my love for Layla a hundred times what it is."</p></div>
+            <div class="prayer"><div class="pnum">a third</div><p>"And if I pray — will it bring me Layla? Then I will pray for that, and nothing else."</p></div>
+          </div>
+          <p class="reveal">Perhaps the disagreement is the truest thing in the whole story. A man who loved the longing itself would, in the end, be impossible to pin down — even on the question of what he wanted. His father, every version agrees on this much, went home alone.</p>
+        </section>
+
+        <div class="pull-quote reveal">
+          <div class="pull-quote-text">&ldquo;To see Layla,<br>you must borrow my eyes.&rdquo;</div>
+          <div class="pull-quote-attribution">— Qays, when told the woman he loved was not, to others, especially beautiful</div>
+        </div>
+
+        <section class="chapter">
+          <div class="chapter-label reveal">VI</div>
+          <h2 class="chapter-title reveal">What Survived</h2>
+          <p class="drop reveal">The legend ends the way legends like this must. Layla, married and far away and faithful to no one but a memory, died first. Qays was found not long after, out among his animals, gone. Whatever he had been chasing, he never had to catch it. The longing stayed perfect to the last.</p>
+          <p class="reveal">But the poems did not die. They travelled by mouth across Arabia, into Persia, into India and the courts of the Mughals, into the songs of Sufi mystics who read the whole tale as a parable — Qays was the soul, Layla was God, and the unbearable distance between them was the whole point of being alive. In the twelfth century the poet Nizami spun it into one of the great epics of the world. Eight hundred years after that, a guitarist named Eric Clapton read a translation, and wrote a song you have heard.</p>
+          <p class="reveal">Maybe that is why this story refuses to die, even when you tell it honestly — <em>especially</em> when you tell it honestly. Everyone has wanted something they arranged never to have. Everyone has, at least once, loved the wanting. Qays just never pretended otherwise.</p>
+        </section>
+
+        <div class="closing reveal">
+          <p>In Arabic there is a quiet way of measuring a love: how long, after the lovers are gone, the verses keep being said.</p>
+          <p>By that measure — real or not, wise or not — Qays and Layla have been loved for fourteen hundred years.</p>
+          <p class="final">It belongs now to you, too — to keep, or to argue with, whichever you like.</p>
+        </div>
+
+        <div class="story-nav">
+          <button class="nav-back" data-go="home"><span class="arr">←</span> The library</button>
+          <button class="nav-next" data-go="antarah"><span class="lbl">Read next</span><span class="ttl">Antarah &amp; Abla →</span></button>
+        </div>
+      </div>
+    </article>
+
+    <!-- ============ STORY 3: ANTARAH & ABLA ============ -->
+    <article class="view" id="antarah">
+      <div class="page">
+        <button class="nav-back" data-go="home"><span class="arr">←</span> The library</button>
+
+        <header class="hero">
+          <svg class="hero-scene reveal" width="260" height="70" viewBox="0 0 400 100" aria-hidden="true">
+            <circle cx="60" cy="22" r="0.9" fill="#EDE4D3" opacity="0.7"/><circle cx="140" cy="14" r="1.4" fill="#EDE4D3" opacity="0.85"/><circle cx="210" cy="30" r="0.7" fill="#EDE4D3" opacity="0.55"/><circle cx="295" cy="18" r="1.1" fill="#D4AB5A" opacity="0.85"/><circle cx="350" cy="34" r="0.8" fill="#EDE4D3" opacity="0.65"/>
+            <path d="M 0 76 Q 200 56, 400 76" stroke="#D4AB5A" stroke-width="0.7" fill="none" opacity="0.55"/>
+            <path d="M188,62 l8,-20 4,20 Z" fill="#D4AB5A" opacity="0.9"/>
+          </svg>
+          <div class="hero-arabic reveal" lang="ar">عَنْتَرَة وعَبْلَة</div>
+          <div class="hero-english reveal d1">Antarah &amp; Abla</div>
+          <div class="hero-subtitle reveal d1">A true story of pre-Islamic Arabia · the warrior-poet who would not stay a slave</div>
+        </header>
+
+        <svg class="plate reveal" viewBox="0 0 680 360" role="img" aria-label="A mounted warrior with a raised spear stands on a dune beneath a vast starry sky">
+          <rect width="680" height="240" fill="#1c1726"/>
+          <path d="M0,240 L0,214 Q150,184 320,210 Q460,230 560,200 Q630,178 680,196 L680,250 L0,250 Z" fill="#3a2420"/>
+          <rect y="250" width="680" height="110" fill="#b5793f"/>
+          <path d="M0,280 Q170,262 340,280 T680,274 L680,360 L0,360 Z" fill="#8f5a2c"/>
+          <path d="M0,318 Q200,302 400,320 T680,314 L680,360 L0,360 Z" fill="#73471f"/>
+          <g fill="#e3b85a"><circle cx="44" cy="40" r="1.2"/><circle cx="110" cy="84" r="1.4"/><circle cx="176" cy="44" r="1"/><circle cx="244" cy="110" r="1.2"/><circle cx="300" cy="40" r="1.1"/><circle cx="360" cy="84" r="1"/><circle cx="430" cy="44" r="1.5"/><circle cx="500" cy="118" r="1"/><circle cx="560" cy="58" r="1.3"/><circle cx="620" cy="110" r="1.2"/><circle cx="650" cy="48" r="1.3"/><circle cx="90" cy="150" r="1"/><circle cx="540" cy="160" r="0.9"/></g>
+          <g transform="translate(120,84)"><circle r="28" fill="#e3b85a"/><circle cx="9" cy="-5" r="23" fill="#1c1726"/></g>
+          <g fill="#1a120c" transform="translate(360,250)">
+            <ellipse cx="0" cy="0" rx="70" ry="16"/>
+            <line x1="-48" y1="10" x2="-52" y2="-6" stroke="#1a120c" stroke-width="6"/><line x1="-22" y1="14" x2="-24" y2="-6" stroke="#1a120c" stroke-width="6"/><line x1="20" y1="14" x2="22" y2="-6" stroke="#1a120c" stroke-width="6"/><line x1="46" y1="10" x2="50" y2="-6" stroke="#1a120c" stroke-width="6"/>
+            <path d="M-70,-6 q-16,2 -26,12" stroke="#1a120c" stroke-width="10" fill="none" stroke-linecap="round"/>
+            <ellipse cx="-92" cy="-28" rx="11" ry="14"/>
+            <path d="M-100,-40 q6,-12 18,-13 9,0 12,6 l4,20 q-18,5 -34,2 z"/>
+            <line x1="-78" y1="-58" x2="-60" y2="-96" stroke="#1a120c" stroke-width="3"/>
+            <path d="M-60,-96 l-6,-2 6,-10 4,8 Z"/>
+            <path d="M60,-6 q14,-4 24,4" stroke="#1a120c" stroke-width="6" fill="none" stroke-linecap="round"/>
+          </g>
+        </svg>
+
+        <section class="chapter">
+          <div class="chapter-label reveal">I</div>
+          <h2 class="chapter-title reveal">The Boy They Would Not Name</h2>
+          <svg class="plate reveal" viewBox="0 0 680 250" role="img" aria-label="A strong young boy carries a sheep across his shoulders at dawn">
+            <rect width="680" height="150" fill="#f0cf94"/><rect y="150" width="680" height="100" fill="#caa566"/>
+            <path d="M0,150 Q170,140 340,150 T680,146 L680,172 L0,172 Z" fill="#b8924f"/>
+            <circle cx="120" cy="56" r="28" fill="#fdf0c8" opacity="0.9"/><circle cx="120" cy="56" r="46" fill="#fdf0c8" opacity="0.22"/>
+            <g fill="#3a2418">
+              <ellipse cx="350" cy="100" rx="12" ry="14"/>
+              <path d="M334,118 Q330,138 338,150 L362,150 Q370,138 366,118 Q360,108 350,108 Q340,108 334,118 Z"/>
+              <path d="M334,124 Q320,134 316,150" stroke="#3a2418" stroke-width="7" fill="none" stroke-linecap="round"/>
+              <path d="M366,124 Q380,134 384,150" stroke="#3a2418" stroke-width="7" fill="none" stroke-linecap="round"/>
+            </g>
+            <g fill="#e8ddc8" stroke="#3a2418" stroke-width="1">
+              <ellipse cx="350" cy="92" rx="44" ry="16"/>
+              <circle cx="306" cy="92" r="9" fill="#d8cbb2"/>
+              <line x1="300" y1="96" x2="296" y2="108" stroke-width="2"/><line x1="308" y1="98" x2="306" y2="110" stroke-width="2"/>
+            </g>
+          </svg>
+          <p class="drop reveal">This story is true, and we are sure of the man at its center — which makes it rarer than most. His name was Antarah ibn Shaddad, and he was born, around the year 525, into a tribe that did not want him.</p>
+          <p class="reveal">His father was an Arab chieftain of the Banu Abs. His mother, Zabiba, was an Ethiopian woman the tribe had enslaved in a raid. By the cruel arithmetic of that world, a child took the mother's station — so Antarah was born a slave, dark-skinned among people who prized pale lineage, and his own father would not claim him. The tribe could not even be bothered to use his name. They called him <em>boy</em>. They called him <em>you, there</em>.</p>
+          <p class="reveal">But there was no hiding what he was. By nine he could lift a full-grown sheep onto his shoulders and carry it home. He grew into the strongest man anyone had seen, and — quietly, where no one was listening — the finest poet too.</p>
+        </section>
+
+        <section class="chapter">
+          <div class="chapter-label reveal">II</div>
+          <h2 class="chapter-title reveal">Abla</h2>
+          <svg class="plate reveal plate-sm" viewBox="0 0 400 250" role="img" aria-label="A single date palm beside a still desert pool at dusk">
+            <rect width="400" height="150" fill="#e9b277"/><rect y="150" width="400" height="100" fill="#caa05c"/>
+            <circle cx="320" cy="60" r="22" fill="#f6dca2" opacity="0.9"/>
+            <ellipse cx="180" cy="210" rx="120" ry="20" fill="#8fb0c0" opacity="0.8"/>
+            <ellipse cx="180" cy="208" rx="120" ry="20" fill="none" stroke="#bcdce8" stroke-width="0.8" opacity="0.6"/>
+            <g>
+              <path d="M120,150 Q124,100 128,70" stroke="#5b3b22" stroke-width="7" fill="none"/>
+              <g stroke="#3f6f3a" stroke-width="5" fill="none" stroke-linecap="round">
+                <path d="M128,70 Q104,58 84,62"/><path d="M128,70 Q152,58 172,62"/>
+                <path d="M128,70 Q110,52 96,44"/><path d="M128,70 Q146,52 160,44"/>
+                <path d="M128,70 Q126,50 124,36"/><path d="M128,70 Q132,50 134,36"/>
+              </g>
+              <g fill="#7a4a1e"><circle cx="124" cy="78" r="2.4"/><circle cx="131" cy="80" r="2.4"/><circle cx="127" cy="84" r="2.4"/></g>
+            </g>
+            <ellipse cx="180" cy="208" rx="20" ry="3.4" fill="#f6dca2" opacity="0.5"/>
+          </svg>
+          <p class="drop reveal">He loved his cousin Abla. He had loved her since they were children, and when he became a poet there was only ever one subject worth the trouble. He made her into verse so fine that, fourteen centuries later, lovers across Arabia still borrow his lines on the night they propose.</p>
+          <p class="reveal">But Antarah was a slave, and Abla was the freeborn daughter of his uncle. He could carry her water and guard her people's camels. He could not, by any law the tribe recognized, ask for her hand. There was a wall between them, and it was not made of stone — it was made of who the world had decided he was.</p>
+        </section>
+
+        <section class="chapter">
+          <div class="chapter-label reveal">III</div>
+          <h2 class="chapter-title reveal">&ldquo;Defend Your Tribe, and You Are Free&rdquo;</h2>
+          <svg class="plate reveal" viewBox="0 0 680 250" role="img" aria-label="Mounted riders charge with spears across a dusty plain at dawn">
+            <rect width="680" height="150" fill="#d99a5a"/><rect y="150" width="680" height="100" fill="#a9743e"/>
+            <path d="M0,150 Q170,140 340,150 T680,146 L680,180 L0,180 Z" fill="#946131"/>
+            <g opacity="0.4" fill="#b98a55"><ellipse cx="200" cy="120" rx="120" ry="40"/><ellipse cx="460" cy="130" rx="140" ry="44"/></g>
+            <g fill="#2e1d12">
+              <g transform="translate(150,150)"><ellipse cx="0" cy="0" rx="44" ry="11"/><line x1="-28" y1="8" x2="-30" y2="-6" stroke="#2e1d12" stroke-width="4"/><line x1="-10" y1="9" x2="-11" y2="-6" stroke="#2e1d12" stroke-width="4"/><line x1="12" y1="9" x2="13" y2="-6" stroke="#2e1d12" stroke-width="4"/><line x1="28" y1="8" x2="30" y2="-6" stroke="#2e1d12" stroke-width="4"/><path d="M-44,-4 q-10,1 -16,8" stroke="#2e1d12" stroke-width="7" fill="none" stroke-linecap="round"/><ellipse cx="-58" cy="-18" rx="7" ry="9"/><path d="M-63,-26 q4,-8 12,-8 5,0 6,4 l3,12 q-12,3 -22,1 z"/><line x1="-46" y1="-36" x2="-30" y2="-62" stroke="#2e1d12" stroke-width="2.4"/></g>
+              <g transform="translate(360,156) scale(1.18)"><ellipse cx="0" cy="0" rx="44" ry="11"/><line x1="-28" y1="8" x2="-30" y2="-6" stroke="#2e1d12" stroke-width="4"/><line x1="-10" y1="9" x2="-11" y2="-6" stroke="#2e1d12" stroke-width="4"/><line x1="12" y1="9" x2="13" y2="-6" stroke="#2e1d12" stroke-width="4"/><line x1="28" y1="8" x2="30" y2="-6" stroke="#2e1d12" stroke-width="4"/><path d="M44,-4 q10,1 16,8" stroke="#2e1d12" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M-44,-4 q-10,1 -16,8" stroke="#2e1d12" stroke-width="7" fill="none" stroke-linecap="round"/><ellipse cx="-58" cy="-18" rx="7.5" ry="10"/><path d="M-64,-27 q5,-9 13,-8 6,0 7,5 l3,12 q-13,3 -24,1 z"/><line x1="-46" y1="-37" x2="-24" y2="-70" stroke="#2e1d12" stroke-width="3"/><path d="M-24,-70 l-6,-1 5,-9 4,7 Z"/></g>
+              <g transform="translate(560,150) scale(0.9)"><ellipse cx="0" cy="0" rx="44" ry="11"/><line x1="-28" y1="8" x2="-30" y2="-6" stroke="#2e1d12" stroke-width="4"/><line x1="12" y1="9" x2="13" y2="-6" stroke="#2e1d12" stroke-width="4"/><line x1="28" y1="8" x2="30" y2="-6" stroke="#2e1d12" stroke-width="4"/><path d="M44,-4 q10,1 16,8" stroke="#2e1d12" stroke-width="7" fill="none" stroke-linecap="round"/><ellipse cx="-58" cy="-18" rx="7" ry="9"/><path d="M-63,-26 q4,-8 12,-8 5,0 6,4 l3,12 q-12,3 -22,1 z"/><line x1="-46" y1="-36" x2="-62" y2="-60" stroke="#2e1d12" stroke-width="2.4"/></g>
+            </g>
+          </svg>
+          <p class="drop reveal">Then one day raiders fell on the Banu Abs and began driving off the herds and the people. In the chaos, Antarah's father shouted at him to charge and fight. And Antarah — who had been a slave his whole life, and knew exactly what he was worth to them — called back the bitter truth: <em>A slave does not know how to charge. A slave only knows how to milk the goats and serve.</em></p>
+          <p class="reveal">His father understood the bargain being demanded of him. And he answered with the seven words that turned the whole story: <em>"Defend your tribe, O Antar — and you are free."</em></p>
+          <p class="reveal">Antarah charged. The legends say the raiders broke against him like water on rock, and the Banu Abs won back everything they had lost. When it was over, the boy who had no name was a free man — and the men who had called him <em>you, there</em> learned, at last, to call him Antarah.</p>
+        </section>
+
+        <div class="verse reveal">
+          <div class="verse-arabic" lang="ar"><span class="line">وَلَقَد ذَكَرتُكِ وَالرِماحُ نَواهِلٌ مِنّي</span><span class="line">وَبيضُ الهِندِ تَقطُرُ مِن دَمي</span></div>
+          <div class="verse-english">I remembered you — while the spears drank deep of me,<br>and the bright Indian swords ran with my blood.</div>
+          <div class="verse-attribution">Antarah ibn Shaddad · from his Mu'allaqa</div>
+        </div>
+
+        <section class="chapter">
+          <div class="chapter-label reveal">IV</div>
+          <h2 class="chapter-title reveal">The Impossible Bride-Price</h2>
+          <svg class="plate reveal" viewBox="0 0 680 240" role="img" aria-label="A long caravan of camels crosses the dunes under an evening sky">
+            <rect width="680" height="146" fill="#e6a967"/><rect y="146" width="680" height="94" fill="#c2884a"/>
+            <path d="M0,146 Q170,132 340,146 T680,142 L680,180 L0,180 Z" fill="#aa7339"/>
+            <path d="M0,210 Q170,196 340,210 T680,206" stroke="#946131" stroke-width="0.8" fill="none" opacity="0.5"/>
+            <circle cx="580" cy="56" r="24" fill="#f6dca2" opacity="0.85"/>
+            <g fill="#5a3a20">
+              <g transform="translate(120,150)"><path d="M-26,0 q4,-20 12,-22 4,12 8,0 4,-14 10,-12 8,4 8,18 l2,16 -6,0 -2,-12 -10,0 -2,12 -6,0 -1,-14 -9,0 -1,14 -6,0 z"/><line x1="-20" y1="16" x2="-20" y2="30" stroke="#5a3a20" stroke-width="2"/><line x1="20" y1="16" x2="20" y2="30" stroke="#5a3a20" stroke-width="2"/><path d="M28,-18 q8,-2 10,4" stroke="#5a3a20" stroke-width="3" fill="none"/></g>
+              <g transform="translate(210,156) scale(0.85)"><path d="M-26,0 q4,-20 12,-22 4,12 8,0 4,-14 10,-12 8,4 8,18 l2,16 -6,0 -2,-12 -10,0 -2,12 -6,0 -1,-14 -9,0 -1,14 -6,0 z"/><line x1="-20" y1="16" x2="-20" y2="30" stroke="#5a3a20" stroke-width="2"/><line x1="20" y1="16" x2="20" y2="30" stroke="#5a3a20" stroke-width="2"/></g>
+              <g transform="translate(290,160) scale(0.72)"><path d="M-26,0 q4,-20 12,-22 4,12 8,0 4,-14 10,-12 8,4 8,18 l2,16 -6,0 -2,-12 -10,0 -2,12 -6,0 -1,-14 -9,0 -1,14 -6,0 z"/><line x1="-20" y1="16" x2="-20" y2="30" stroke="#5a3a20" stroke-width="2"/><line x1="20" y1="16" x2="20" y2="30" stroke="#5a3a20" stroke-width="2"/></g>
+              <g transform="translate(360,164) scale(0.6)"><path d="M-26,0 q4,-20 12,-22 4,12 8,0 4,-14 10,-12 8,4 8,18 l2,16 -6,0 -2,-12 -10,0 -2,12 -6,0 -1,-14 -9,0 -1,14 -6,0 z"/></g>
+              <g transform="translate(420,167) scale(0.5)"><path d="M-26,0 q4,-20 12,-22 4,12 8,0 4,-14 10,-12 8,4 8,18 l2,16 -6,0 -2,-12 -10,0 -2,12 -6,0 -1,-14 -9,0 -1,14 -6,0 z"/></g>
+            </g>
+          </svg>
+          <p class="drop reveal">Free, and a hero, Antarah went to his uncle and asked for Abla. But the tribe was not done making him earn what others were simply given. They set a bride-price meant to be impossible: a herd of rare and famous camels, the prized <em>asafir</em> she-camels, kept far to the north in the realm of a king.</p>
+          <p class="reveal">It was a quest designed to kill him, or at least to send him away forever. Instead he rode north, took the camels through danger that became its own legend, and drove them home across the desert to lay them down before his uncle's tent. Whatever the tribe could invent, Antarah simply <em>did</em> — and made a poem of it on the way back.</p>
+        </section>
+
+        <section class="chapter">
+          <div class="chapter-label reveal">V</div>
+          <h2 class="chapter-title reveal">The Name the Desert Kept</h2>
+          <svg class="plate reveal" viewBox="0 0 680 250" role="img" aria-label="Two figures stand together on a dune beneath a crescent moon and stars">
+            <rect width="680" height="150" fill="#1d2342"/>
+            <path d="M0,150 L0,128 Q160,108 340,128 Q500,144 680,122 L680,160 L0,160 Z" fill="#3a2c46"/>
+            <rect y="150" width="680" height="100" fill="#b07c44"/>
+            <path d="M0,176 Q170,160 340,176 T680,170 L680,250 L0,250 Z" fill="#8c5e30"/>
+            <g fill="#e3b85a"><circle cx="50" cy="36" r="1.3"/><circle cx="130" cy="74" r="1"/><circle cx="220" cy="34" r="1.5"/><circle cx="320" cy="70" r="1"/><circle cx="430" cy="38" r="1.2"/><circle cx="520" cy="74" r="1.1"/><circle cx="600" cy="40" r="1.4"/><circle cx="650" cy="78" r="1"/></g>
+            <g transform="translate(560,58)"><circle r="22" fill="#e3b85a"/><circle cx="8" cy="-4" r="18" fill="#1d2342"/></g>
+            <g fill="#241726">
+              <g transform="translate(312,150)"><ellipse cx="0" cy="-4" rx="11" ry="13"/><path d="M-14,40 Q-17,2 -7,-12 0,-18 7,-12 17,2 14,40 Z"/></g>
+              <g transform="translate(356,150)"><ellipse cx="0" cy="-4" rx="10" ry="12"/><path d="M-12,40 Q-15,2 -6,-12 0,-17 6,-12 15,2 12,40 Z"/><path d="M0,-14 Q-12,-18 -16,-30 -8,-26 0,-28 8,-26 16,-30 12,-18 0,-14 Z"/></g>
+            </g>
+          </svg>
+          <p class="drop reveal">And so the slave married the free woman, and the boy with no name became the most celebrated knight in Arabia. His war-poem was counted among the seven greatest odes ever composed — the <em>Mu'allaqat</em>, the "hanging poems," said to have been written in gold and hung at the holy shrine in Mecca for all to read.</p>
+          <p class="reveal">Think of what that means. The tribe that would not say his name hung his words in the holiest place they knew. The poems he had made in the dark, where no one was listening, outlived every man who had ever called him <em>boy</em>.</p>
+          <p class="reveal">Fourteen hundred years later, children in Arabia still learn his story. His lines are still recited at weddings. And on the night they mean to ask the most important question of their lives, lovers still reach, without quite knowing why, for the words of a man who was told he was no one — and who answered with a sword, a poem, and a love he refused to be talked out of.</p>
+        </section>
+
+        <div class="closing reveal">
+          <p>Qays loved a door he kept locked. Antarah found a door the whole world had locked against him — and broke it down.</p>
+          <p class="final">The boy they would not name became the name the desert never forgot.</p>
+        </div>
+
+        <div class="story-nav">
+          <button class="nav-back" data-go="home"><span class="arr">←</span> The library</button>
+          <button class="nav-next" data-go="gazelle"><span class="lbl">Read next</span><span class="ttl">A Boy Raised by a Gazelle →</span></button>
+        </div>
+      </div>
+    </article>
+
+  </main>
+
+  <script>
+  (function(){
+    var body = document.body;
+    body.setAttribute('data-on','');
+    var reduce = false;
+    try { reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch(e){}
+    if (!reduce) body.classList.add('motion');
+
+    var ids = ['home','gazelle','qays','antarah'];
+    var views = {};
+    ids.forEach(function(id){ views[id] = document.getElementById(id); });
+
+    var io = null;
+    if (!reduce && 'IntersectionObserver' in window) {
+      io = new IntersectionObserver(function(entries){
+        entries.forEach(function(en){
+          if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); }
+        });
+      }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+    }
+
+    function revealIn(view){
+      var els = view.querySelectorAll('.reveal');
+      els.forEach(function(el){
+        if (io) { io.observe(el); } else { el.classList.add('in'); }
+      });
+    }
+
+    function show(id){
+      if (!views[id]) id = 'home';
+      ids.forEach(function(k){ views[k].classList.toggle('active', k === id); });
+      // Sync the URL hash so deep links work when the file is saved and opened
+      // directly. Wrapped in try/catch because sandboxed previews (about:srcdoc)
+      // block the History API and would otherwise throw a SecurityError.
+      try {
+        if (window.history && history.replaceState && location.hash.slice(1) !== id) {
+          history.replaceState(null, '', '#' + id);
+        }
+      } catch (e) { /* sandboxed frame: in-memory navigation only */ }
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+      revealIn(views[id]);
+    }
+
+    document.querySelectorAll('[data-go]').forEach(function(el){
+      el.addEventListener('click', function(){ show(el.getAttribute('data-go')); });
+    });
+    window.addEventListener('hashchange', function(){
+      var h = 'home';
+      try { h = location.hash.slice(1) || 'home'; } catch (e) {}
+      show(h);
+    });
+
+    // gentle starfield parallax
+    if (!reduce) {
+      var sky = document.querySelector('.stars svg');
+      var ticking = false;
+      window.addEventListener('scroll', function(){
+        if (!ticking) {
+          window.requestAnimationFrame(function(){
+            if (sky) sky.style.transform = 'translateY(' + (window.scrollY * 0.06) + 'px)';
+            ticking = false;
+          });
+          ticking = true;
+        }
+      }, { passive: true });
+    }
+
+    var initial = 'home';
+    try { var h = location.hash.slice(1); if (h && views[h]) initial = h; } catch (e) {}
+    show(initial);
+  })();
+  </script>
+</body>
+</html>
